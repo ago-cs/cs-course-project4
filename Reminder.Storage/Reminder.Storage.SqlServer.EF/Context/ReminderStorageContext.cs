@@ -8,23 +8,10 @@ namespace Reminder.Storage.SqlServer.EF.Context
 	{
 		public DbSet<ReminderItemDto> ReminderItems { get; set; }
 
-		public ReminderStorageContext()
-		{
-		}
-
 		public ReminderStorageContext(DbContextOptions<ReminderStorageContext> options)
 			: base(options)
 		{
 		}
-
-		//protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-		//{
-		//	if (!optionsBuilder.IsConfigured)
-		//	{
-		//		optionsBuilder.UseSqlServer(
-		//			"Data Source=localhost\\SQLEXPRESS;Initial Catalog=ReminderEF;Integrated Security=true;");
-		//	}
-		//}
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
@@ -44,6 +31,7 @@ namespace Reminder.Storage.SqlServer.EF.Context
 					.IsUnicode(false);
 
 				entity.Property(e => e.TargetDate)
+					.IsRequired()
 					.HasColumnType("datetimeoffset(7)");
 
 				entity.Property(e => e.Message)
@@ -54,7 +42,9 @@ namespace Reminder.Storage.SqlServer.EF.Context
 				entity.Property(e => e.Status)
 					.HasColumnName("StatusId")
 					.IsRequired()
-					.HasConversion(new EnumToNumberConverter<ReminderItemStatus, int>());
+					.HasConversion(
+						//new EnumToStringConverter<ReminderItemStatus>());
+						new EnumToNumberConverter<ReminderItemStatus, int>());
 
 				entity.Property(e => e.CreatedDate)
 					.HasColumnType("datetimeoffset(7)")

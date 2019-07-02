@@ -14,13 +14,16 @@ namespace Reminder.Storage.SqlServer.EF
 		public static readonly LoggerFactory MyConsoleLoggerFactory =
 			new LoggerFactory(new[]
 			{
+#pragma warning disable CS0618 // Type or member is obsolete
+
 				new ConsoleLoggerProvider(
 					(category, level) =>
 						category == DbLoggerCategory.Database.Command.Name
 						&& level == LogLevel.Information,
 					true)
-			});
 
+#pragma warning restore CS0618 // Type or member is obsolete
+			});
 
 		private readonly DbContextOptionsBuilder<ReminderStorageContext> _builder;
 
@@ -53,6 +56,7 @@ namespace Reminder.Storage.SqlServer.EF
 		public Guid Add(ReminderItemRestricted reminder)
 		{
 			var dto = new ReminderItemDto(reminder);
+
 			using (var context = new ReminderStorageContext(_builder.Options))
 			{
 				context.ReminderItems.Add(dto);
@@ -78,25 +82,24 @@ namespace Reminder.Storage.SqlServer.EF
 				if (count == 0 && startPostion == 0)
 				{
 					return context.ReminderItems
-					.OrderBy(ri => ri.Id)
-					.Select(ri => ri.ToReminderItem())
-					.ToList();
+						.Select(r => r.ToReminderItem())
+						.ToList();
 				}
 
 				if (count == 0)
 				{
 					return context.ReminderItems
-					.OrderBy(ri => ri.Id)
-					.Skip(startPostion)
-					.Select(ri => ri.ToReminderItem())
-					.ToList();
+						.OrderBy(r => r.Id)
+						.Skip(startPostion)
+						.Select(r => r.ToReminderItem())
+						.ToList();
 				}
 
 				return context.ReminderItems
-					.OrderBy(ri => ri.Id)
+					.OrderBy(r => r.Id)
 					.Skip(startPostion)
 					.Take(count)
-					.Select(ri => ri.ToReminderItem())
+					.Select(r => r.ToReminderItem())
 					.ToList();
 			}
 		}
@@ -108,25 +111,27 @@ namespace Reminder.Storage.SqlServer.EF
 				if (count == 0 && startPostion == 0)
 				{
 					return context.ReminderItems
-					.Where(ri => ri.Status == status)
-					.Select(ri => ri.ToReminderItem())
-					.ToList();
+						.Where(r => r.Status == status)
+						.Select(r => r.ToReminderItem())
+						.ToList();
 				}
 
 				if (count == 0)
 				{
 					return context.ReminderItems
-					.Where(ri => ri.Status == status)
-					.Skip(startPostion)
-					.Select(ri => ri.ToReminderItem())
-					.ToList();
+						.Where(r => r.Status == status)
+						.OrderBy(r => r.Id)
+						.Skip(startPostion)
+						.Select(r => r.ToReminderItem())
+						.ToList();
 				}
 
 				return context.ReminderItems
-					.Where(ri => ri.Status == status)
+					.Where(r => r.Status == status)
+					.OrderBy(r => r.Id)
 					.Skip(startPostion)
 					.Take(count)
-					.Select(ri => ri.ToReminderItem())
+					.Select(r => r.ToReminderItem())
 					.ToList();
 			}
 		}
@@ -136,9 +141,8 @@ namespace Reminder.Storage.SqlServer.EF
 			using (var context = new ReminderStorageContext(_builder.Options))
 			{
 				return context.ReminderItems
-					.OrderBy(ri => ri.Id)
-					.Where(ri => ri.Status == status)
-					.Select(ri => ri.ToReminderItem())
+					.Where(r => r.Status == status)
+					.Select(r => r.ToReminderItem())
 					.ToList();
 			}
 		}
@@ -147,14 +151,15 @@ namespace Reminder.Storage.SqlServer.EF
 		{
 			using (var context = new ReminderStorageContext(_builder.Options))
 			{
-				var found = context.ReminderItems.Find(id) != null;
-				if (found)
+				var dto = context.ReminderItems.FirstOrDefault(r => r.Id == id);
+				if (dto == null)
 				{
-					context.ReminderItems.Remove(new ReminderItemDto { Id = id });
-					context.SaveChanges();
+					return false;
 				}
 
-				return found;
+				context.ReminderItems.Remove(dto);
+				context.SaveChanges();
+				return true;
 			}
 		}
 
@@ -163,10 +168,10 @@ namespace Reminder.Storage.SqlServer.EF
 			using (var context = new ReminderStorageContext(_builder.Options))
 			{
 				var dtos = context.ReminderItems
-				.Where(d => ids.Contains(d.Id))
-				.ToList();
+					.Where(d => ids.Contains(d.Id))
+					.ToList();
 
-				foreach (var dto in dtos)
+				foreach(var dto in dtos)
 				{
 					dto.Status = status;
 				}

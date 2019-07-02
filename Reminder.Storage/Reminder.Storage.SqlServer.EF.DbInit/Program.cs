@@ -6,6 +6,7 @@ namespace Reminder.Storage.SqlServer.EF.DbInit
 	{
 		static void Main(string[] args)
 		{
+			Console.WriteLine("Hello World!");
 		}
 	}
 }
