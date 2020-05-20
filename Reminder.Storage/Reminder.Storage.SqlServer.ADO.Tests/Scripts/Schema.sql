@@ -11,8 +11,8 @@ CREATE TABLE [dbo].[ReminderItem] (
 	[Id] UNIQUEIDENTIFIER NOT NULL,
 	[ContactId] VARCHAR(50) NOT NULL, -- According to the model's restriction in ReminderItemCreateModel.cs
 	[TargetDate] DATETIMEOFFSET NOT NULL,
-	[Message] NVARCHAR(200) NOT NULL, -- -- According to the model's restriction in ReminderItemCreateModel.cs
-	[StatusId] TINYINT NOT NULL,
+	[Message] VARCHAR(200) NOT NULL, -- -- According to the model's restriction in ReminderItemCreateModel.cs
+	StatusId TINYINT NOT NULL,
 	[CreatedDate] DATETIMEOFFSET NOT NULL,
 	[UpdatedDate] DATETIMEOFFSET NOT NULL,
 	CONSTRAINT PK_ReminderItem PRIMARY KEY CLUSTERED (Id)

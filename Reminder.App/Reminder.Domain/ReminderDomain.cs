@@ -22,8 +22,8 @@ namespace Reminder.Domain
 		private Timer _awaitingRemindersCheckTimer;
 		private Timer _readyRemindersSendTimer;
 
-		public event EventHandler<AddingSuccededEventArgs> AddingSuccedded;
-		public event EventHandler<SendingSuccededEventArgs> SendingSucceded;
+		public event EventHandler<AddingSucceededEventArgs> AddingSucceeded;
+		public event EventHandler<SendingSucceededEventArgs> SendingSucceeded;
 		public event EventHandler<SendingFailedEventArgs> SendingFailed;
 
 		public ReminderDomain(
@@ -35,10 +35,10 @@ namespace Reminder.Domain
 			_receiver = receiver;
 			_sender = sender;
 
+			_receiver.MessageReceived += Receiver_MessageReceived;
+
 			_awaitingRemindersCheckingPeriod = TimeSpan.FromSeconds(1);
 			_readyRemindersSendingPeriod = TimeSpan.FromSeconds(1);
-
-			_receiver.MessageReceived += ReminderReceiver_MessageReceived;
 		}
 
 		public ReminderDomain(
@@ -76,14 +76,12 @@ namespace Reminder.Domain
 			_readyRemindersSendTimer?.Dispose();
 		}
 
-		private void ReminderReceiver_MessageReceived(
-			object sender,
-			MessageReceivedEventArgs e)
+		private void Receiver_MessageReceived(object sender, MessageReceivedEventArgs e)
 		{
-			var parsedMessage = MessageParser.Parse(e.Message);
-			if (parsedMessage != null)
+			ParsedMessage parsedMessage = MessageParser.Parse(e.Message);
+			if(parsedMessage != null)
 			{
-				var reminder = new ReminderItemRestricted
+				var restrictedReminder = new ReminderItemRestricted
 				{
 					ContactId = e.ContactId,
 					Message = parsedMessage.Message,
@@ -91,15 +89,16 @@ namespace Reminder.Domain
 					Status = ReminderItemStatus.Awaiting
 				};
 
-				 _storage.Add(reminder);
+				Guid id = _storage.Add(restrictedReminder);
 
-				AddingSuccedded?.Invoke(
+				AddingSucceeded?.Invoke(
 					this,
-					new AddingSuccededEventArgs(
+					new AddingSucceededEventArgs(
 						new AddReminderModel(
-							reminder.ContactId,
-							reminder.Message,
-							reminder.Date)));
+							restrictedReminder.ContactId,
+							restrictedReminder.Message,
+							restrictedReminder.Date),
+						id));
 			}
 		}
 
@@ -110,15 +109,11 @@ namespace Reminder.Domain
 			var ids = _storage
 				.Get(ReminderItemStatus.Awaiting)
 				.Where(r => r.IsTimeToSend)
-				.Select(r => r.Id)
-				.ToList();
+				.Select(r => r.Id);
 
-			if (ids.Count > 0)
-			{
-				_storage.UpdateStatus(
-					ids,
-					ReminderItemStatus.Ready);
-			}
+			_storage.UpdateStatus(
+				ids,
+				ReminderItemStatus.Ready);
 		}
 
 		private void SendReadyReminders(object dummy)
@@ -138,15 +133,17 @@ namespace Reminder.Domain
 			{
 				try
 				{
-					_sender.Send(sendReminder.ContactId, sendReminder.Message);
+					_sender.Send(
+						sendReminder.ContactId,
+						sendReminder.Message);
 
 					_storage.UpdateStatus(
 						sendReminder.Id,
 						ReminderItemStatus.Sent);
 
-					SendingSucceded?.Invoke(
+					SendingSucceeded?.Invoke(
 						this,
-						new SendingSuccededEventArgs(
+						new SendingSucceededEventArgs(
 							sendReminder));
 				}
 				catch (Exception exception)

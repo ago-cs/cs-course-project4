@@ -1,5 +1,4 @@
-﻿using System.IO;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 
 namespace Reminder.Storage.SqlServer.EF.DbInit
 {
@@ -13,7 +12,6 @@ namespace Reminder.Storage.SqlServer.EF.DbInit
 			IConfiguration config = new ConfigurationBuilder()
 				.AddJsonFile(SettingFileName)
 				.Build();
-
 			return config.GetConnectionString(DbConnectionName);
 		}
 	}

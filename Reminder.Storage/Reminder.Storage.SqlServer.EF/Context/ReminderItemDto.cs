@@ -21,7 +21,6 @@ namespace Reminder.Storage.SqlServer.EF.Context
 
 		public ReminderItemDto()
 		{
-
 		}
 
 		public ReminderItemDto(ReminderItemRestricted restricted)

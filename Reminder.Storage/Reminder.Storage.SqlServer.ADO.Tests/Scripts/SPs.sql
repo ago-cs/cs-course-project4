@@ -34,14 +34,14 @@ AS BEGIN
 		[StatusId],
 		[CreatedDate],
 		[UpdatedDate])
-	VALUES (
-		@tempReminderId,
-		@contactId,
-		@targetDate,
-		@message,
-		@statusId,
-		@now,
-		@now)
+     VALUES (
+        @tempReminderId,
+        @contactId,
+        @targetDate,
+        @message,
+        @statusId,
+        @now,
+        @now)
 	
 	SET @reminderId = @tempReminderId
 END
@@ -50,15 +50,20 @@ GO
 DROP PROCEDURE IF EXISTS [dbo].[RemoveReminderItem]
 GO
 CREATE PROCEDURE [dbo].[RemoveReminderItem] (
-	@reminderId AS UNIQUEIDENTIFIER
+	@reminderId AS UNIQUEIDENTIFIER,
+	@deleted AS BIT OUTPUT
 )
 AS BEGIN
 	SET NOCOUNT ON
 
-	DELETE FROM [dbo].[ReminderItem]
-	WHERE Id = @reminderId
-	
-	SELECT CAST(@@ROWCOUNT AS BIT)
+	IF EXISTS (SELECT * FROM [dbo].[ReminderItem] WHERE Id = @reminderId)
+	BEGIN
+		DELETE FROM [dbo].[ReminderItem]
+		WHERE Id = @reminderId
+		SELECT @deleted = 1
+	END
+	ELSE
+		SELECT @deleted = 0	
 END
 GO
 ---
@@ -72,10 +77,10 @@ AS BEGIN
 
 	SELECT
 		[Id],
-		[ContactId],
-		[TargetDate],
-		[Message],
-		[StatusId]
+        [ContactId],
+        [TargetDate],
+        [Message],
+        [StatusId]
 	FROM [dbo].[ReminderItem]
 	WHERE [Id] = @reminderId
 END
@@ -95,25 +100,6 @@ AS BEGIN
 	WHERE [Id] = @reminderId
 END
 GO
-DROP PROCEDURE IF EXISTS [dbo].[GetReminderItemsByStatus]
-GO
-CREATE PROCEDURE [dbo].[GetReminderItemsByStatus] (
-	@statusId AS TINYINT
-)
-AS BEGIN
-	SET NOCOUNT ON
-
-	SELECT
-		[Id],
-		[ContactId],
-		[TargetDate],
-		[Message],
-		[StatusId]
-	FROM [dbo].[ReminderItem]
-	WHERE [StatusId] = @statusId
-	ORDER BY [TargetDate] DESC
-END
-GO
 --
 DROP PROCEDURE IF EXISTS [dbo].[GetReminderItemsWithPaging]
 GO
@@ -128,8 +114,8 @@ AS BEGIN
 		SELECT @count = COUNT(*)
 		FROM [dbo].[ReminderItem]
 
-	IF @startPosition IS NULL OR @startPosition < 1
-		SET @startPosition = 1;
+	IF @startPosition IS NULL OR @startPosition < 0
+		SET @startPosition = 0;
 
 	SELECT
 		[Id],
@@ -137,18 +123,10 @@ AS BEGIN
 		[TargetDate],
 		[Message],
 		[StatusId]
-	FROM (
-		SELECT
-			[Id],
-			[ContactId],
-			[TargetDate],
-			[Message],
-			[StatusId],
-			ROW_NUMBER() OVER (ORDER BY [TargetDate] DESC) AS RowNumber
-		FROM [dbo].[ReminderItem]
-	) AS TableWithRowNumbers
-	WHERE RowNumber BETWEEN @startPosition AND @startPosition + @count - 1
-	ORDER BY RowNumber ASC
+	FROM [dbo].[ReminderItem]
+	ORDER BY [TargetDate] ASC
+		OFFSET @startPosition ROWS
+		FETCH NEXT @count ROWS ONLY
 END
 ---
 GO
@@ -162,13 +140,13 @@ CREATE PROCEDURE [dbo].[GetReminderItemsByStatusWithPaging] (
 AS BEGIN
 	SET NOCOUNT ON
 
-	IF @count IS NULL OR @count < 1
+		IF @count IS NULL OR @count < 1
 		SELECT @count = COUNT(*)
 		FROM [dbo].[ReminderItem]
 		WHERE [StatusId] = @statusId
 
-	IF @startPosition IS NULL OR @startPosition < 1
-		SET @startPosition = 1;
+	IF @startPosition IS NULL OR @startPosition < 0
+		SET @startPosition = 0;
 
 	SELECT
 		[Id],
@@ -176,34 +154,19 @@ AS BEGIN
 		[TargetDate],
 		[Message],
 		[StatusId]
-	FROM (
-		SELECT
-			[Id],
-			[ContactId],
-			[TargetDate],
-			[Message],
-			[StatusId],
-			ROW_NUMBER() OVER (ORDER BY [TargetDate] DESC) AS RowNumber
-		FROM [dbo].[ReminderItem]
-		WHERE [StatusId] = @statusId
-	) AS TableWithRowNumbers
-	WHERE RowNumber BETWEEN @startPosition AND @startPosition + @count - 1
-	ORDER BY RowNumber ASC
+	FROM [dbo].[ReminderItem]
+	WHERE [StatusId] = @statusId
+	ORDER BY [TargetDate] ASC
+		OFFSET @startPosition ROWS
+		FETCH NEXT @count ROWS ONLY
 END
 GO
-DROP PROCEDURE IF EXISTS [dbo].[UpdateReminderItemsBulk]
+--
+DROP PROCEDURE IF EXISTS [dbo].[RemoveAllReminderItems]
 GO
-CREATE PROCEDURE [dbo].[UpdateReminderItemsBulk] (
-	@statusId AS TINYINT
-)
+CREATE PROCEDURE [dbo].[RemoveAllReminderItems]
 AS BEGIN
 	SET NOCOUNT ON
-
-	UPDATE R
-		SET R.[StatusId] = @statusId,
-		R.[UpdatedDate] = SYSDATETIMEOFFSET()
-	FROM [dbo].[ReminderItem] AS R
-	INNER JOIN #ReminderItem AS T
-		ON T.Id = R.Id
+	TRUNCATE TABLE [dbo].[ReminderItem]
 END
 GO

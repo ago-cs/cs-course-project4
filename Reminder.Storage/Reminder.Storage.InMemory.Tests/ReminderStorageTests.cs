@@ -38,40 +38,13 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Get_By_Id_Method_Returns_Single_Reminder()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Awaiting
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(
+				reminders.Select(id => storage.Add(id)));
 
-			var expected = reminderItemIds[2];
+			var expected = ids[2];
 			var reminderItem = storage.Get(expected);
 
 			Assert.IsNotNull(reminderItem);
@@ -93,40 +66,12 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Remove_By_Id_Method_Returns_True_When_Found_And_Removed()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Awaiting
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
 
-			var itemIdToRemove = reminderItemIds[2];
+			var itemIdToRemove = ids[2];
 
 			var actual = storage.Remove(itemIdToRemove);
 
@@ -137,38 +82,10 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Get_Method_Without_Parameters_Returns_All_Reminders()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Awaiting
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
 
 			var actual = storage.Get();
 
@@ -179,38 +96,10 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Get_Method_With_Count_Only_Returns_Limited_Number_Of_Reminders()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Awaiting
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
 
 			var actual = storage.Get(2);
 
@@ -221,38 +110,10 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Get_Method_With_Count_And_Start_Position_Returns_Limited_Number_Of_Reminders()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Awaiting
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
 
 			var actual = storage.Get(2, 2);
 
@@ -264,38 +125,10 @@ namespace Reminder.Storage.InMemory.Tests
 		[TestMethod]
 		public void Get_Method_With_Status_Only_Returns_All_Reminders_With_Requested_Status()
 		{
-			var reminders = new List<ReminderItemRestricted>
-			{
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
-					Message = "Actual 1",
-					Status = ReminderItemStatus.Awaiting
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 1",
-					Status = ReminderItemStatus.Ready
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
-					Message = "Actual 2",
-					Status = ReminderItemStatus.Ready
-				},
-				new ReminderItemRestricted {
-					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
-					Message = "Outdated 2",
-					Status = ReminderItemStatus.Sent
-				}
-			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
 			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
 
 			List<ReminderItem> actual;
 
@@ -305,11 +138,11 @@ namespace Reminder.Storage.InMemory.Tests
 
 			actual = storage.Get(ReminderItemStatus.Ready);
 			Assert.IsNotNull(actual);
-			Assert.AreEqual(2, actual.Count);
+			Assert.AreEqual(1, actual.Count);
 
 			actual = storage.Get(ReminderItemStatus.Sent);
 			Assert.IsNotNull(actual);
-			Assert.AreEqual(1, actual.Count);
+			Assert.AreEqual(2, actual.Count);
 
 			actual = storage.Get(ReminderItemStatus.Failed);
 			Assert.IsNotNull(actual);
@@ -317,50 +150,66 @@ namespace Reminder.Storage.InMemory.Tests
 		}
 
 		[TestMethod]
-		public void UpdateStatus_Method_With_Status_Only_Returns_All_Reminders_With_Requested_Status()
+		public void UpdateStatus_Method_Updates_Single_Item_Correctly()
 		{
-			var reminders = new List<ReminderItemRestricted>
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
+			var storage = new InMemoryReminderStorage();
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
+
+			storage.UpdateStatus(ids[0], ReminderItemStatus.Failed);
+
+			var actual = storage.Get(ReminderItemStatus.Failed);
+			Assert.IsNotNull(actual);
+			Assert.AreEqual(1, actual.Count);
+		}
+
+		[TestMethod]
+		public void UpdateStatus_Method_Updates_Many_Items_Correctly()
+		{
+			var reminders = GetReminderItemRestrictedList();
+			var ids = new List<Guid>(reminders.Count);
+			var storage = new InMemoryReminderStorage();
+			ids.AddRange(reminders.Select(id => storage.Add(id)));
+
+			storage.UpdateStatus(
+				new[] { ids[1], ids[2] },
+				ReminderItemStatus.Failed);
+
+			var actual = storage.Get(ReminderItemStatus.Failed);
+			Assert.IsNotNull(actual);
+			Assert.AreEqual(2, actual.Count);
+		}
+
+		private static List<ReminderItemRestricted> GetReminderItemRestrictedList()
+		{
+			return new List<ReminderItemRestricted>
 			{
-				new ReminderItemRestricted {
+				new ReminderItemRestricted
+				{
 					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(1)),
 					Message = "Actual 1",
 					Status = ReminderItemStatus.Awaiting
 				},
-				new ReminderItemRestricted {
+				new ReminderItemRestricted
+				{
 					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
 					Message = "Outdated 1",
 					Status = ReminderItemStatus.Ready
 				},
-				new ReminderItemRestricted {
+				new ReminderItemRestricted
+				{
 					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(2)),
 					Message = "Actual 2",
-					Status = ReminderItemStatus.Ready
+					Status = ReminderItemStatus.Sent
 				},
-				new ReminderItemRestricted {
+				new ReminderItemRestricted
+				{
 					Date = DateTimeOffset.UtcNow.Add(TimeSpan.FromMinutes(-1)),
 					Message = "Outdated 2",
 					Status = ReminderItemStatus.Sent
 				}
 			};
-
-			List<Guid> reminderItemIds = new List<Guid>(reminders.Count);
-
-			var storage = new InMemoryReminderStorage();
-			for (int i = 0; i < reminders.Count; i++)
-			{
-				Guid id = storage.Add(reminders[i]);
-				reminderItemIds.Add(id);
-			}
-
-			IEnumerable<Guid> selectedReminderIds = storage
-				.Get(ReminderItemStatus.Awaiting)
-				.Select(x => x.Id);
-
-			storage.UpdateStatus(selectedReminderIds, ReminderItemStatus.Failed);
-
-			var actual = storage.Get(ReminderItemStatus.Failed);
-			Assert.IsNotNull(actual);
-			Assert.AreEqual(1, actual.Count);
 		}
 	}
 }

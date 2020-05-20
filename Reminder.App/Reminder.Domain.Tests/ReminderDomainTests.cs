@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
@@ -13,88 +12,110 @@ namespace Reminder.Domain.Tests
 	[TestClass]
 	public class ReminderDomainTests
 	{
-		public Mock<IReminderReceiver> receiverMock = new Mock<IReminderReceiver>();
-		public Mock<IReminderSender> senderMock = new Mock<IReminderSender>();
-
 		[TestMethod]
-		public void When_SendReminder_OK_SendingSuccedded_Event_Raised()
+		public void When_SendReminder_OK_SendingSucceeded_Event_Raised()
 		{
-			var reminderStorage = GetMockedReminderStorage();
-			using (var reminderDomain = new ReminderDomain(
-				reminderStorage,
+			var item = new ReminderItem { Date = DateTimeOffset.Now };
+			var dictionary = new Dictionary<Guid, ReminderItem>
+			{
+				{ item.Id, item}
+			};
+
+			var storageMock = ReminderStorageMockProvider.GetReminderStorageMock(dictionary);
+			var receiverMock = new Mock<IReminderReceiver>();
+			var senderMock = new Mock<IReminderSender>();
+
+			using var reminderDomain = new ReminderDomain(
+				storageMock.Object,
 				receiverMock.Object,
 				senderMock.Object,
 				TimeSpan.FromMilliseconds(100),
-				TimeSpan.FromMilliseconds(100)))
-			{
-				bool eventHandlerCalled = false;
+				TimeSpan.FromMilliseconds(100));
 
-				reminderDomain.SendingSucceded += (s, e) =>
-				{
-					eventHandlerCalled = true;
-				};
+			bool eventHandlerCalled = false;
+			reminderDomain.SendingSucceeded += (s, e) => { eventHandlerCalled = true; };
 
-				reminderStorage.Add(
-					new ReminderItemRestricted
-					{
-						Date = DateTimeOffset.Now
-					});
+			reminderDomain.Run();
 
-				reminderDomain.Run();
+			Thread.Sleep(300);
 
-				Thread.Sleep(300);
-
-				Assert.IsTrue(eventHandlerCalled);
-			}
+			Assert.IsTrue(eventHandlerCalled);
 		}
 
-		public IReminderStorage GetMockedReminderStorage()
+
+		[TestMethod]
+		public void When_SendReminder_Failed_SendingFailed_Event_Raised()
 		{
-			var list = new List<ReminderItem>();
+			var item = new ReminderItem { Date = DateTimeOffset.Now };
+			var dictionary = new Dictionary<Guid, ReminderItem>
+			{
+				{ item.Id, item}
+			};
 
-			Mock<IReminderStorage> storageMock = new Mock<IReminderStorage>();
+			var storageMock = ReminderStorageMockProvider.GetReminderStorageMock(dictionary);
+			var receiverMock = new Mock<IReminderReceiver>();
 
-			storageMock
-				.Setup(x => x.Add(It.IsAny<ReminderItemRestricted>()))
-				.Callback<ReminderItemRestricted>((ri) =>
-				{
-					ReminderItem item = new ReminderItem
-					{
-						ContactId = ri.ContactId,
-						Date = ri.Date,
-						Message = ri.Message,
-						Status = ri.Status
-					};
+			var senderMock = new Mock<IReminderSender>();
+			senderMock
+				.Setup(x => x.Send(It.IsAny<string>(), It.IsAny<string>()))
+				.Throws(new Exception("Sending Failed Exception"));
 
-					list.Add(item);
-				});
+			using var reminderDomain = new ReminderDomain(
+				storageMock.Object,
+				receiverMock.Object,
+				senderMock.Object,
+				TimeSpan.FromMilliseconds(100),
+				TimeSpan.FromMilliseconds(100));
 
-			storageMock
-				.Setup(x => x.Get(It.IsAny<ReminderItemStatus>()))
-				.Returns<ReminderItemStatus>((status) =>
-				{
-					return list
-						.Where(x => x.Status == status)
-						.ToList();
-				});
+			bool eventHandlerCalled = false;
+			reminderDomain.SendingFailed += (s, e) => { eventHandlerCalled = true; };
 
-			storageMock
-				.Setup(x => x.UpdateStatus(It.IsAny<Guid>(), It.IsAny<ReminderItemStatus>()))
-				.Callback<Guid, ReminderItemStatus>((id, status) =>
-				{
-					foreach (ReminderItem item in list.Where(x => x.Id == id))
-						item.Status = status;
-				});
+			reminderDomain.Run();
 
-			storageMock
-				.Setup(x => x.UpdateStatus(It.IsAny<IEnumerable<Guid>>(), It.IsAny<ReminderItemStatus>()))
-				.Callback<IEnumerable<Guid>, ReminderItemStatus>((ids, status) =>
-				{
-					foreach (ReminderItem item in list.Where(x =>ids.Contains(x.Id)))
-						item.Status = status;
-				});
+			Thread.Sleep(300);
 
-			return storageMock.Object;
+			Assert.IsTrue(eventHandlerCalled);
+		}
+
+		[TestMethod]
+		public void When_Receiver_Receives_New_Valid_Reminder_Event_AddingSucceeded_Raised()
+		{
+			var dictionary = new Dictionary<Guid, ReminderItem>();
+
+			var storageMock = ReminderStorageMockProvider.GetReminderStorageMock(dictionary);
+			var receiverMock = new Mock<IReminderReceiver>();
+			var senderMock = new Mock<IReminderSender>();
+
+			const string contact = "contact";
+			const string message = "message";
+			const string date = "2200-01-01T00:00:00Z";
+
+			using var reminderDomain = new ReminderDomain(
+				storageMock.Object,
+				receiverMock.Object,
+				senderMock.Object,
+				TimeSpan.FromMilliseconds(100),
+				TimeSpan.FromMilliseconds(100));
+
+			bool eventHandlerCalled = false;
+			reminderDomain.AddingSucceeded += (s, e) =>
+			{
+				Assert.AreEqual(contact, e.Reminder.ContactId);
+				Assert.AreEqual(message, e.Reminder.Message);
+				Assert.AreEqual(DateTimeOffset.Parse(date), e.Reminder.Date);
+				Assert.AreNotSame(Guid.Empty, e.Id);
+				eventHandlerCalled = true;
+			};
+
+			reminderDomain.Run();
+
+			receiverMock.Raise(
+				x => x.MessageReceived += null,
+				new MessageReceivedEventArgs(contact, $"{date} {message}"));
+
+			Thread.Sleep(300);
+
+			Assert.IsTrue(eventHandlerCalled);
 		}
 	}
 }

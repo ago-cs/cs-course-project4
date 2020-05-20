@@ -24,7 +24,7 @@ namespace Reminder.Storage.Core.Tests
 		}
 
 		[TestMethod]
-		public void Id_Is_Persistant()
+		public void Id_Is_Persistent()
 		{
 			var reminder = new ReminderItem
 			{
@@ -39,7 +39,7 @@ namespace Reminder.Storage.Core.Tests
 		}
 
 		[TestMethod]
-		public void Id_Is_Not_Default_Guid_Empty()
+		public void Id_Is_Default_Guid_Empty()
 		{
 			var reminder = new ReminderItem
 			{
@@ -49,7 +49,7 @@ namespace Reminder.Storage.Core.Tests
 
 			var actual = reminder.Id;
 
-			Assert.AreNotEqual(Guid.Empty, actual);
+			Assert.AreEqual(Guid.Empty, actual);
 		}
 	}
 }

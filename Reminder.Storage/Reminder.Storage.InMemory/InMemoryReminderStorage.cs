@@ -23,7 +23,7 @@ namespace Reminder.Storage.InMemory
 		/// <summary>
 		/// Gets the number of the items in the storage.
 		/// </summary>
-		public int Count => Reminders.Count();
+		public int Count => Reminders.Count;
 
 		/// <summary>
 		/// Adds a new item to the storage.
@@ -32,6 +32,7 @@ namespace Reminder.Storage.InMemory
 		{
 			ReminderItem reminderItem = new ReminderItem
 			{
+				Id = Guid.NewGuid(),
 				ContactId = item.ContactId,
 				Date = item.Date,
 				Message = item.Message,
@@ -73,10 +74,10 @@ namespace Reminder.Storage.InMemory
 		/// <summary>
 		/// Gets the list of the items with pagination.
 		/// </summary>
-		public List<ReminderItem> Get(int count = 0, int startPostion = 0)
+		public List<ReminderItem> Get(int count = 0, int startPosition = 0)
 		{
 			var reminders = Reminders.Values
-				.Skip(startPostion);
+				.Skip(startPosition);
 
 			if (count != 0)
 				reminders = reminders.Take(count);
@@ -100,21 +101,11 @@ namespace Reminder.Storage.InMemory
 		}
 
 		/// <summary>
-		/// Gets the list of the items by status with pagination.
-		/// </summary>
-		public List<ReminderItem> Get(ReminderItemStatus status)
-		{
-			return Reminders.Values
-				.Where(x => x.Status == status)
-				.ToList();
-		}
-
-		/// <summary>
 		/// Updates the status of the items by their IDs.
 		/// </summary>
 		public void UpdateStatus(IEnumerable<Guid> ids, ReminderItemStatus status)
 		{
-			foreach (Guid id in Reminders.Keys.Where(x => ids.Contains(x)))
+			foreach (Guid id in Reminders.Keys.Where(ids.Contains))
 			{
 				Reminders[id].Status = status;
 			}

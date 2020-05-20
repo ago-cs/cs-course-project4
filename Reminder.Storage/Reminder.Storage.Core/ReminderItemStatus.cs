@@ -8,21 +8,21 @@
 		/// <summary>
 		/// Reminder queued and waits its time for sending.
 		/// </summary>
-		Awaiting = 0,
+		Awaiting,
 
 		/// <summary>
 		/// Reminder's time has come. Now it is the queue for sending.
 		/// </summary>
-		Ready = 1,
+		Ready,
 
 		/// <summary>
 		/// Reminder was sent successfully.
 		/// </summary>
-		Sent = 2,
+		Sent,
 
 		/// <summary>
 		/// Something goes wrong while sending attempt.
 		/// </summary>
-		Failed = 3
+		Failed
 	}
 }

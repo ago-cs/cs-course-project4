@@ -1,92 +1,117 @@
 ﻿using System;
+using System.Drawing;
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MihaZupan;
 using Reminder.Domain;
 using Reminder.Domain.EventArgs;
-using Reminder.Storage.WebApi.Client;
+using Reminder.Receiver.Core;
 using Reminder.Receiver.Telegram;
+using Reminder.Sender.Core;
 using Reminder.Sender.Telegram;
+using Reminder.Storage.Core;
+using Reminder.Storage.WebApi.Client;
 
 namespace Reminder.App
 {
 	class Program
 	{
-		static void Main(string[] args)
+		static void Main()
 		{
-			// read configuration
+			var builder = new HostBuilder()
+				.ConfigureServices((hostContext, serviceCollection) =>
+				{
+					IConfiguration config = new ConfigurationBuilder()
+						.AddJsonFile(
+							"appsettings.json",
+							false,
+							true)
+						.Build();
 
-			IConfiguration config = new ConfigurationBuilder()
-				.AddJsonFile("appsettings.json", true, true)
-				.Build();
+					bool useProxy = bool.Parse(config["telegramBot.UseProxy"]);
+					if (useProxy)
+					{
+						string telegramBotProxyHost = config["telegramBot.Proxy.Host"];
+						int telegramBotProxyPort = int.Parse(config["telegramBot.Proxy.Port"]);
 
-			var storageWebApiUrl = config["storageWebApiUrl"];
-			var telegramBotApiToken = config["telegramBot.ApiToken"];
-			var telegramBotUseProxy = bool.Parse(config["telegramBot.UseProxy"]);
-			var telegramBotProxyHost = config["telegramBot.Proxy.Host"];
-			var telegramBotProxyPort = int.Parse(config["telegramBot.Proxy.Port"]);
+						serviceCollection.AddSingleton<IWebProxy>(new HttpToSocks5Proxy(
+							telegramBotProxyHost,
+							telegramBotProxyPort));
+					}
+					else
+					{
+						serviceCollection.AddSingleton((IWebProxy)null);
+					}
 
-			// create objects for DI
+					serviceCollection.AddHttpClient();
+					serviceCollection.AddSingleton(config);
+					serviceCollection.AddSingleton<IReminderStorage, ReminderStorageWebApiClient>();
+					serviceCollection.AddSingleton<IReminderReceiver, TelegramReminderReceiver>();
+					serviceCollection.AddSingleton<IReminderSender, TelegramReminderSender>();
+					serviceCollection.AddSingleton<ReminderDomain, ReminderDomain>();
+				}).UseConsoleLifetime();
 
-			var reminderStorage = new ReminderStorageWebApiClient(storageWebApiUrl);
+			var host = builder.Build();
 
-			IWebProxy telegramProxy = null;
-			if (telegramBotUseProxy)
+			using var serviceScope = host.Services.CreateScope();
+			var services = serviceScope.ServiceProvider;
+
+			try
 			{
-				telegramProxy = new HttpToSocks5Proxy(telegramBotProxyHost, telegramBotProxyPort);
+				var domain = services.GetRequiredService<ReminderDomain>();
+
+				domain.AddingSucceeded += Domain_AddingSucceeded;
+				domain.SendingSucceeded += Domain_SendingSucceeded;
+				domain.SendingFailed += Domain_SendingFailed;
+
+				domain.Run();
+
+				ConsoleWrite(ConsoleColor.Green, "Reminder application is running...");
+				Console.WriteLine("\nPress [Enter] to shutdown.");
+
+				Console.ReadLine();
+			}
+			catch (Exception ex)
+			{
+				var logger = services.GetRequiredService<ILogger<Program>>();
+				logger.LogError(ex, "An error occurred.");
 			}
 
-			var reminderReceiver = new TelegramReminderReceiver(telegramBotApiToken, telegramProxy);
-			var reminderSender = new TelegramReminderSender(telegramBotApiToken, telegramProxy);
-
-			// create and setup domain logic object
-
-			var reminderDomain = new ReminderDomain(
-				reminderStorage,
-				reminderReceiver,
-				reminderSender);
-
-			reminderDomain.AddingSuccedded += ReminderDomain_AddingSuccedded;
-			reminderDomain.SendingSucceded += ReminderDomain_SendingSucceded;
-			reminderDomain.SendingFailed += ReminderDomain_SendingFailed;
-
-			// run
-
-			reminderDomain.Run();
-
-			string hello = reminderReceiver.GetHelloFromBot();
-
-			Console.WriteLine(
-				$"Reminder application is running...\n" +
-				$"{hello}\n" +
-				"Press [Enter] to shutdown.");
-			Console.ReadLine();
 		}
 
-		private static void ReminderDomain_AddingSuccedded(object sender, AddingSuccededEventArgs e)
-		{
-			Console.WriteLine(
-				$"Reminder from contact ID {e.Reminder.ContactId} " +
-				$"with the message \"{e.Reminder.Message}\" " +
-				$"successfully scheduled on {e.Reminder.Date:s}");
-		}
-
-		private static void ReminderDomain_SendingSucceded(
+		private static void Domain_AddingSucceeded(
 			object sender,
-			SendingSuccededEventArgs e)
+			AddingSucceededEventArgs e)
 		{
-			Console.WriteLine(
-				"Reminder {0:N} successfully send message text \"{1}\"",
-				e.Reminder.Id,
-				e.Reminder.Message);
+			Console.Write($"Reminder from contact ID {e.Reminder.ContactId} ");
+			Console.Write($"with the message \"{e.Reminder.Message}\" ");
+			ConsoleWrite(ConsoleColor.Green, "successfully scheduled");
+			Console.WriteLine($" on {e.Reminder.Date:s}");
 		}
 
-		private static void ReminderDomain_SendingFailed(object sender, SendingFailedEventArgs e)
+		private static void Domain_SendingSucceeded(
+			object sender,
+			SendingSucceededEventArgs e)
 		{
-			Console.WriteLine(
-				"Reminder {0:N} sending has failed. Exception:\n{1}",
-				e.Reminder.Id,
-				e.Exception);
+			Console.WriteLine($"Reminder {e.Reminder.Id:N} ");
+			ConsoleWrite(ConsoleColor.Green, "successfully sent");
+			Console.WriteLine($" message text \"{e.Reminder.Message}\"");
+		}
+
+		private static void Domain_SendingFailed(object sender, SendingFailedEventArgs e)
+		{
+			Console.Write($"Reminder {e.Reminder.Id:N} sending has failed. ");
+			ConsoleWrite(ConsoleColor.Red, $"Exception:\n{e.Exception}");
+		}
+
+		public static void ConsoleWrite(ConsoleColor color, string text, params object[] arguments)
+		{
+			Console.ForegroundColor = color;
+			Console.Write(text, arguments);
+			Console.ResetColor();
 		}
 	}
 }

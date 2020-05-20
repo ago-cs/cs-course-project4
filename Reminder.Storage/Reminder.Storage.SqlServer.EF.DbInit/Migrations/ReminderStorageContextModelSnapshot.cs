@@ -15,17 +15,19 @@ namespace Reminder.Storage.SqlServer.EF.DbInit.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "2.2.4-servicing-10062")
+                .HasAnnotation("ProductVersion", "3.1.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
             modelBuilder.Entity("Reminder.Storage.SqlServer.EF.Context.ReminderItemDto", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd();
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ContactId")
                         .IsRequired()
+                        .HasColumnType("varchar(50)")
                         .HasMaxLength(50)
                         .IsUnicode(false);
 
@@ -36,13 +38,13 @@ namespace Reminder.Storage.SqlServer.EF.DbInit.Migrations
 
                     b.Property<string>("Message")
                         .IsRequired()
+                        .HasColumnType("nvarchar(200)")
                         .HasMaxLength(200)
                         .IsUnicode(true);
 
                     b.Property<int>("Status")
                         .HasColumnName("StatusId")
-                        .HasMaxLength(30)
-                        .IsUnicode(false);
+                        .HasColumnType("int");
 
                     b.Property<DateTimeOffset>("TargetDate")
                         .HasColumnType("datetimeoffset(7)");

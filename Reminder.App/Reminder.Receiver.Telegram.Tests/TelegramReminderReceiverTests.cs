@@ -1,26 +1,53 @@
+using System.Net;
+using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MihaZupan;
-using Reminder.Receiver.Telegram;
-using System.Net;
 
 namespace Reminder.Receiver.Telegram.Tests
 {
 	[TestClass]
 	public class TelegramReminderReceiverTests
 	{
-		private const string _token = "633428988:AAHLW_LaS7A47PDO2I8sbLkIIM9L0joPOSQ";
+		private static TelegramReminderReceiver _telegramReminderReceiver;
+
+		[ClassInitialize]
+		public static void ClassInitialize(TestContext testContext)
+		{
+			var config = new ConfigurationBuilder()
+				.AddJsonFile(
+					"appsettings.json",
+					false,
+					true)
+				.Build();
+
+			IWebProxy proxy = null;
+			
+			bool useProxy = bool.Parse(config["telegramBot.UseProxy"]);
+			if (useProxy)
+			{
+				string telegramBotProxyHost = config["telegramBot.Proxy.Host"];
+				int telegramBotProxyPort = int.Parse(config["telegramBot.Proxy.Port"]);
+
+				proxy = new HttpToSocks5Proxy(
+					telegramBotProxyHost,
+					telegramBotProxyPort);
+			}
+
+			_telegramReminderReceiver = new TelegramReminderReceiver(config, proxy);
+		}
 
 		[TestMethod]
-		public void GetHelloFromBot_With_Proxy_Returns_Not_Empty_String()
+		public void GetHelloFromBot_Returns_Not_Empty_String()
 		{
-			// use proxy if needed
-			IWebProxy proxy = 
-				new HttpToSocks5Proxy("proxy.golyakov.net", 1080);			
+			string description = _telegramReminderReceiver.GetHelloFromBot();
 
-			TelegramReminderReceiver reminderReceiver = 
-				new TelegramReminderReceiver(_token, proxy);
+			Assert.IsNotNull(description);
+		}
 
-			string description = reminderReceiver.GetHelloFromBot();
+		[TestMethod]
+		public void GetHelloFromBot_Returns_Not_Empty_String2()
+		{
+			string description = _telegramReminderReceiver.GetHelloFromBot();
 
 			Assert.IsNotNull(description);
 		}

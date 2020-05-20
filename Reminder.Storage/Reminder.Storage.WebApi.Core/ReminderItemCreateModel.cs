@@ -16,41 +16,50 @@ namespace Reminder.Storage.WebApi.Core
 		/// Gets or sets contact identifier in the target sending system.
 		/// </summary>
 		[Required]
-		[MaxLength(50)]
 		public string ContactId { get; set; }
 
 		/// <summary>
 		/// Gets or sets the message of the reminder item for sending to the recipient.
 		/// </summary>
 		[Required]
-		[MaxLength(200)]
 		public string Message { get; set; }
 
 		/// <summary>
-		/// Gets or sets the identifier of the recipient.
+		/// Gets or sets the status of the recipient.
 		/// </summary>
 		[Required]
-		[Range(0, 3)]
 		public ReminderItemStatus Status { get; set; }
 
 		public ReminderItemCreateModel()
 		{
 		}
 
-		public ReminderItemCreateModel(ReminderItemRestricted reminderItemRestricted)
+		public ReminderItemCreateModel(ReminderItemRestricted reminderItem)
 		{
-			Date = reminderItemRestricted.Date;
-			ContactId = reminderItemRestricted.ContactId;
-			Message = reminderItemRestricted.Message;
-			Status = reminderItemRestricted.Status;
+			Date = reminderItem.Date;
+			ContactId = reminderItem.ContactId;
+			Message = reminderItem.Message;
+			Status = reminderItem.Status;
 		}
 
-		public ReminderItemRestricted ToReminderItem()
+		public ReminderItemRestricted ToReminderItemRestricted()
 		{
 			return new ReminderItemRestricted
 			{
-				Date = Date,
 				ContactId = ContactId,
+				Date = Date,
+				Message = Message,
+				Status = Status
+			};
+		}
+
+		public ReminderItem ToReminderItem(Guid id)
+		{
+			return new ReminderItem
+			{
+				Id = id,
+				ContactId = ContactId,
+				Date = Date,
 				Message = Message,
 				Status = Status
 			};

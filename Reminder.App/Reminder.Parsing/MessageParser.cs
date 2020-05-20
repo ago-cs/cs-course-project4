@@ -9,10 +9,9 @@ namespace Reminder.Parsing
 			if (string.IsNullOrWhiteSpace(message))
 				return null;
 
-			int firstSpacePosition = message.IndexOf(" ");
+			int firstSpacePosition = message.IndexOf(" ", StringComparison.Ordinal);
 			if (firstSpacePosition <= 0)
 				return null;
-
 
 			string firstWord = message.Substring(0, firstSpacePosition);
 			bool dateIsOk = DateTimeOffset.TryParse(firstWord, out var date);

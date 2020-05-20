@@ -6,7 +6,7 @@ namespace Reminder.Storage.WebApi.Core
 	public class ReminderItemGetModel
 	{
 		/// <summary>
-		/// Gets the identifier.
+		/// Gets or sets the unique identifier.
 		/// </summary>
 		public Guid Id { get; set; }
 
@@ -26,7 +26,7 @@ namespace Reminder.Storage.WebApi.Core
 		public string Message { get; set; }
 
 		/// <summary>
-		/// Gets or sets the identifier of the recipient.
+		/// Gets or sets the status of the recipient.
 		/// </summary>
 		public ReminderItemStatus Status { get; set; }
 
@@ -43,22 +43,13 @@ namespace Reminder.Storage.WebApi.Core
 			Status = reminderItem.Status;
 		}
 
-		public ReminderItemGetModel(Guid id, ReminderItemRestricted reminderItemRestricted)
-		{
-			Id = id;
-			Date = reminderItemRestricted.Date;
-			ContactId = reminderItemRestricted.ContactId;
-			Message = reminderItemRestricted.Message;
-			Status = reminderItemRestricted.Status;
-		}
-
 		public ReminderItem ToReminderItem()
 		{
 			return new ReminderItem
 			{
 				Id = Id,
-				Date = Date,
 				ContactId = ContactId,
+				Date = Date,
 				Message = Message,
 				Status = Status
 			};

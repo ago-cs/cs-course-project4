@@ -10,7 +10,7 @@ namespace Reminder.Storage.Core
 		/// <summary>
 		/// Gets the identifier.
 		/// </summary>
-		public Guid Id { get; set; } = Guid.NewGuid();
+		public Guid Id { get; set; }
 
 		/// <summary>
 		/// Gets or sets the date and time the reminder item scheduled for sending.
@@ -38,4 +38,3 @@ namespace Reminder.Storage.Core
 		public bool IsTimeToSend => Date.UtcDateTime < DateTimeOffset.UtcNow;
 	}
 }
-

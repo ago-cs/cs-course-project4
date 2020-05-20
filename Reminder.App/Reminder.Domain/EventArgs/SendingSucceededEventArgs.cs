@@ -2,11 +2,11 @@
 
 namespace Reminder.Domain.EventArgs
 {
-	public class SendingSuccededEventArgs: System.EventArgs
+	public class SendingSucceededEventArgs: System.EventArgs
 	{
 		public SendReminderModel Reminder { get; set; }
 
-		public SendingSuccededEventArgs(SendReminderModel reminder)
+		public SendingSucceededEventArgs(SendReminderModel reminder)
 		{
 			Reminder = reminder;
 		}

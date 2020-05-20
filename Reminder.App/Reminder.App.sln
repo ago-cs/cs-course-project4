@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.106
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29709.97
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reminder.Domain", "Reminder.Domain\Reminder.Domain.csproj", "{B3D9A2DB-86BB-4E89-BF8B-A9368ED32B8A}"
 EndProject
@@ -29,7 +29,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reminder.Storage.WebApi.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reminder.Storage.WebApi.Client", "..\Reminder.Storage\Reminder.Storage.WebApi.Client\Reminder.Storage.WebApi.Client.csproj", "{5B297B64-7BFF-4265-BBA3-40BF6CF0BAC9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.WebApi.Client.App", "Test.WebApi.Client.App\Test.WebApi.Client.App.csproj", "{38B84268-236A-42AD-A003-DCC3010CD299}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.WebApi.Client.App", "Test.WebApi.Client.App\Test.WebApi.Client.App.csproj", "{06DF6068-EAFB-423D-8554-2949DCF33BC9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Reminder.Storage.InMemory", "..\Reminder.Storage\Reminder.Storage.InMemory\Reminder.Storage.InMemory.csproj", "{1A0005EB-9D67-4CC9-B61A-9FC0D13EB8B5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,10 +91,14 @@ Global
 		{5B297B64-7BFF-4265-BBA3-40BF6CF0BAC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B297B64-7BFF-4265-BBA3-40BF6CF0BAC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B297B64-7BFF-4265-BBA3-40BF6CF0BAC9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{38B84268-236A-42AD-A003-DCC3010CD299}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{38B84268-236A-42AD-A003-DCC3010CD299}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{38B84268-236A-42AD-A003-DCC3010CD299}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{38B84268-236A-42AD-A003-DCC3010CD299}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06DF6068-EAFB-423D-8554-2949DCF33BC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06DF6068-EAFB-423D-8554-2949DCF33BC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06DF6068-EAFB-423D-8554-2949DCF33BC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06DF6068-EAFB-423D-8554-2949DCF33BC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A0005EB-9D67-4CC9-B61A-9FC0D13EB8B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A0005EB-9D67-4CC9-B61A-9FC0D13EB8B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A0005EB-9D67-4CC9-B61A-9FC0D13EB8B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A0005EB-9D67-4CC9-B61A-9FC0D13EB8B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

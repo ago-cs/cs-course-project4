@@ -3,7 +3,7 @@
 namespace Reminder.Storage.Core
 {
 	/// <summary>
-	/// The single reminder item.
+	/// The restricted reminder item contains all the data excepting the Id.
 	/// </summary>
 	public class ReminderItemRestricted
 	{
@@ -33,4 +33,3 @@ namespace Reminder.Storage.Core
 		public bool IsTimeToSend => Date.UtcDateTime < DateTimeOffset.UtcNow;
 	}
 }
-

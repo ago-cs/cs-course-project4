@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using Microsoft.AspNetCore.JsonPatch;
-using Microsoft.AspNetCore.JsonPatch.Operations;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Reminder.Storage.Core;
 using Reminder.Storage.WebApi.Core;
 
@@ -15,23 +14,191 @@ namespace Reminder.Storage.WebApi.Client
 {
 	public class ReminderStorageWebApiClient : IReminderStorage
 	{
-		private string _baseWebApiUrl;
-		private HttpClient _httpClient;
+		private readonly HttpClient _httpClient;
+		private readonly string _baseWebApiUrl;
 
 		public ReminderStorageWebApiClient(string baseWebApiUrl)
 		{
-			_baseWebApiUrl = baseWebApiUrl;
-			_httpClient = HttpClientFactory.Create();
+			if (baseWebApiUrl == null)
+				throw new ArgumentException(
+					$"Parameter '{nameof(baseWebApiUrl)}' should not be empty.",
+					nameof(baseWebApiUrl));
+
+			_baseWebApiUrl = baseWebApiUrl.TrimEnd('/');
+			_httpClient = new HttpClient();
+		}
+
+		public ReminderStorageWebApiClient(IConfiguration config, IHttpClientFactory httpClientFactory)
+		{
+			_httpClient = httpClientFactory.CreateClient();
+			_baseWebApiUrl = config["storageWebApiUrl"];
+		}
+
+		public List<ReminderItem> Get(ReminderItemStatus status, int count = 0, int startPosition = 0)
+		{
+			var queryParams = new List<KeyValuePair<string, string>>
+			{
+				new KeyValuePair<string, string>("status", ((int) status).ToString())
+			};
+
+			if (count > 0)
+			{
+				queryParams.Add(new KeyValuePair<string, string>("count", count.ToString()));
+			}
+
+			if (startPosition > 0)
+			{
+				queryParams.Add(new KeyValuePair<string, string>("startPosition", startPosition.ToString()));
+			}
+
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Get,
+				"/api/reminders" + BuildQueryString(queryParams));
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.OK)
+			{
+				throw CreateException(httpResponseMessage);
+			}
+
+			var list = JsonConvert.DeserializeObject<List<ReminderItemGetModel>>(
+				httpResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+
+			if (list == null)
+				throw new Exception("Body cannot be parsed as List<ReminderItemGetModel>.");
+
+			return list
+				.Select(m => m.ToReminderItem())
+				.ToList();
+		}
+
+		public List<ReminderItem> Get(int count = 0, int startPosition = 0)
+		{
+			var queryParams = new List<KeyValuePair<string, string>>();
+
+			if (count > 0)
+			{
+				queryParams.Add(new KeyValuePair<string, string>("count", count.ToString()));
+			}
+
+			if (startPosition > 0)
+			{
+				queryParams.Add(new KeyValuePair<string, string>("startPosition", startPosition.ToString()));
+			}
+
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Get,
+				"/api/reminders" + BuildQueryString(queryParams));
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.OK)
+			{
+				throw CreateException(httpResponseMessage);
+			}
+
+			var list = JsonConvert.DeserializeObject<List<ReminderItemGetModel>>(
+				httpResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+
+			if (list == null)
+				throw new Exception("Body cannot be parsed as List<ReminderItemGetModel>.");
+
+			return list
+				.Select(m => m.ToReminderItem())
+				.ToList();
+		}
+
+		public ReminderItem Get(Guid id)
+		{
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Get,
+				$"/api/reminders/{id}");
+
+			if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
+			{
+				return null;
+			}
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.OK)
+			{
+				throw CreateException(httpResponseMessage);
+			}
+
+			var reminderItemGetModel = JsonConvert.DeserializeObject<ReminderItemGetModel>(
+				httpResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+
+			if (reminderItemGetModel == null)
+				throw new Exception("Body cannot be parsed as ReminderItemGetModel.");
+
+			return reminderItemGetModel.ToReminderItem();
+		}
+
+		public Guid Add(ReminderItemRestricted restrictedReminder)
+		{
+			var reminderItemCreateModel = new ReminderItemCreateModel(restrictedReminder);
+			var content = JsonConvert.SerializeObject(reminderItemCreateModel);
+
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Post,
+				"/api/reminders",
+				content);
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.Created)
+			{
+				throw CreateException(httpResponseMessage);
+			}
+
+			return JsonConvert
+				.DeserializeObject<ReminderItemGetModel>(
+					httpResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult())
+				.Id;
+		}
+
+		public void UpdateStatus(Guid id, ReminderItemStatus status)
+		{
+			var content = JsonConvert.SerializeObject(new ReminderItemUpdateModel { Status = status });
+
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Patch,
+				$"/api/reminders/{id}",
+				content);
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.NoContent
+				&& httpResponseMessage.StatusCode != HttpStatusCode.NotFound)
+			{
+				throw CreateException(httpResponseMessage);
+			}
+		}
+
+		public void UpdateStatus(IEnumerable<Guid> ids, ReminderItemStatus status)
+		{
+			var reminderItemsUpdateModel = new ReminderItemsUpdateModel
+			{
+				Ids = ids.ToList(),
+				Status = status
+			};
+
+			var content = JsonConvert.SerializeObject(reminderItemsUpdateModel);
+
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Patch,
+				"/api/reminders",
+				content);
+
+			if (httpResponseMessage.StatusCode != HttpStatusCode.NoContent)
+			{
+				throw CreateException(httpResponseMessage);
+			}
 		}
 
 		public int Count
 		{
 			get
 			{
-				var httpResponseMessage = CallWebApi("HEAD", "/api/reminders", null);
-				if (httpResponseMessage.StatusCode != System.Net.HttpStatusCode.OK)
+				var httpResponseMessage = CallWebApi(
+					HttpMethod.Head,
+					"/api/reminders");
+
+				if (httpResponseMessage.StatusCode != HttpStatusCode.OK)
 				{
-					throw GetException(httpResponseMessage);
+					throw CreateException(httpResponseMessage);
 				}
 
 				const string totalCountHeaderName = "X-Total-Count";
@@ -48,210 +215,49 @@ namespace Reminder.Storage.WebApi.Client
 			}
 		}
 
-		public Guid Add(ReminderItemRestricted reminder)
+		public void Clear()
 		{
-			var result = CallWebApi(
-				"POST",
-				"/api/reminders",
-				JsonConvert.SerializeObject(new ReminderItemCreateModel(reminder)));
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Put,
+				"/api/reminders");
 
-			if (result.StatusCode != System.Net.HttpStatusCode.Created)
+			if (httpResponseMessage.StatusCode != HttpStatusCode.NoContent)
 			{
-				throw GetException(result);
+				throw CreateException(httpResponseMessage);
 			}
-
-			return JsonConvert
-				.DeserializeObject<ReminderItemGetModel>(
-					result.Content.ReadAsStringAsync().Result)
-				.Id;
-		}
-
-		public ReminderItem Get(Guid id)
-		{
-			var result = CallWebApi(
-				"GET",
-				 $"/api/reminders/{id}");
-
-			if (result.StatusCode == System.Net.HttpStatusCode.NotFound)
-			{
-				return null;
-			}
-
-			if (result.StatusCode != System.Net.HttpStatusCode.OK)
-			{
-				throw GetException(result);
-			}
-
-			var reminderItemGetModel = JsonConvert.DeserializeObject<ReminderItemGetModel>(
-				result.Content.ReadAsStringAsync().Result);
-
-			return reminderItemGetModel.ToReminderItem();
-		}
-
-		public List<ReminderItem> Get(ReminderItemStatus status)
-		{
-			var queryParams = new List<KeyValuePair<string, string>>();
-			queryParams.Add(new KeyValuePair<string, string>("[filter]status", ((int)status).ToString()));
-
-			var httpResponseMessage = CallWebApi("GET", "/api/reminders" + BuildQueryString(queryParams));
-
-			if (httpResponseMessage.StatusCode != System.Net.HttpStatusCode.OK)
-			{
-				throw GetException(httpResponseMessage);
-			}
-
-			var list = JsonConvert.DeserializeObject<List<ReminderItemGetModel>>(
-				httpResponseMessage.Content.ReadAsStringAsync().Result);
-
-			if (list == null)
-				throw new Exception($"Body cannot be parsed as List<ReminderItemGetModel>.");
-
-			return list
-				.Select(m => m.ToReminderItem())
-				.ToList();
-		}
-
-		public List<ReminderItem> Get(int count, int startPostion)
-		{
-			var queryParams = new List<KeyValuePair<string, string>>();
-
-			if (count > 0)
-				queryParams.Add(new KeyValuePair<string, string>("[paging]count", count.ToString()));
-
-			if (startPostion > 0)
-				queryParams.Add(new KeyValuePair<string, string>("[paging]startPostion", startPostion.ToString()));
-
-			var httpResponseMessage = CallWebApi("GET", "/api/reminders" + BuildQueryString(queryParams));
-
-			if (httpResponseMessage.StatusCode != System.Net.HttpStatusCode.OK)
-			{
-				throw GetException(httpResponseMessage);
-			}
-
-			var list = JsonConvert.DeserializeObject<List<ReminderItemGetModel>>(
-				httpResponseMessage.Content.ReadAsStringAsync().Result);
-
-			if (list == null)
-				throw new Exception($"Body cannot be parsed as List<ReminderItemGetModel>.");
-
-			return list
-				.Select(m => m.ToReminderItem())
-				.ToList();
-		}
-
-		public List<ReminderItem> Get(ReminderItemStatus status, int count, int startPostion)
-		{
-			var queryParams = new List<KeyValuePair<string, string>>();
-
-			queryParams.Add(new KeyValuePair<string, string>("[filter]status", ((int)status).ToString()));
-
-			if (count > 0)
-				queryParams.Add(new KeyValuePair<string, string>("[paging]count", count.ToString()));
-
-			if (startPostion > 0)
-				queryParams.Add(new KeyValuePair<string, string>("[paging]startPostion", startPostion.ToString()));
-
-			var httpResponseMessage = CallWebApi("GET", "/api/reminders" + BuildQueryString(queryParams));
-
-			if (httpResponseMessage.StatusCode != System.Net.HttpStatusCode.OK)
-			{
-				throw GetException(httpResponseMessage);
-			}
-
-			var list = JsonConvert.DeserializeObject<List<ReminderItemGetModel>>(
-				httpResponseMessage.Content.ReadAsStringAsync().Result);
-
-			if (list == null)
-				throw new Exception($"Body cannot be parsed as List<ReminderItemGetModel>.");
-
-			return list
-				.Select(m => m.ToReminderItem())
-				.ToList();
 		}
 
 		public bool Remove(Guid id)
 		{
-			var httpResponseMessage = CallWebApi("DELETE", $"/api/reminders/{id}");
+			var httpResponseMessage = CallWebApi(
+				HttpMethod.Delete,
+				$"/api/reminders/{id}");
 
-			if (httpResponseMessage.StatusCode == System.Net.HttpStatusCode.NotFound)
+			if (httpResponseMessage.StatusCode == HttpStatusCode.NotFound)
 			{
 				return false;
 			}
 
-			if (httpResponseMessage.StatusCode != System.Net.HttpStatusCode.NoContent)
+			if (httpResponseMessage.StatusCode != HttpStatusCode.NoContent)
 			{
-				throw GetException(httpResponseMessage);
+				throw CreateException(httpResponseMessage);
 			}
 
 			return true;
 		}
 
-		public void UpdateStatus(IEnumerable<Guid> ids, ReminderItemStatus status)
-		{
-			var contentModel = new ReminderItemsUpdateModel
-			{
-				Ids = ids.ToList(),
-				PatchDocument = new JsonPatchDocument<ReminderItemUpdateModel>(
-					new List<Operation<ReminderItemUpdateModel>>
-					{
-					new Operation<ReminderItemUpdateModel>
-					{
-						op = "replace",
-						path = "/status",
-						value = (int)status
-					}
-					},
-					new DefaultContractResolver())
-			};
-
-			var result = CallWebApi(
-				"PATCH",
-				$"/api/reminders",
-				JsonConvert.SerializeObject(contentModel));
-
-			if (result.StatusCode != System.Net.HttpStatusCode.NoContent)
-			{
-				throw GetException(result);
-			}
-		}
-
-		public void UpdateStatus(Guid id, ReminderItemStatus status)
-		{
-			var patchDocument = new JsonPatchDocument<ReminderItemUpdateModel>(
-				new List<Operation<ReminderItemUpdateModel>>
-				{
-					new Operation<ReminderItemUpdateModel>
-					{
-						op = "replace",
-						path = "/status",
-						value = (int)status
-					}
-				},
-				new DefaultContractResolver());
-
-			var result = CallWebApi(
-				"PATCH",
-				$"/api/reminders/{id}",
-				JsonConvert.SerializeObject(patchDocument));
-
-			if (result.StatusCode != System.Net.HttpStatusCode.NoContent)
-			{
-				throw GetException(result);
-			}
-		}
-
 		private HttpResponseMessage CallWebApi(
-			string method,
+			HttpMethod method,
 			string relativeUrl,
 			string content = null)
 		{
 			var request = new HttpRequestMessage(
-				new HttpMethod(method),
+				method,
 				_baseWebApiUrl + relativeUrl);
 
-			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
-			if (method == "POST" || method == "PATCH" || method == "PUT")
+			if (content != null)
 			{
 				request.Content = new StringContent(
 					content,
@@ -259,26 +265,31 @@ namespace Reminder.Storage.WebApi.Client
 					"application/json");
 			}
 
-			return _httpClient.SendAsync(request).Result;
+			return _httpClient.SendAsync(request).GetAwaiter().GetResult();
 		}
 
 		private string BuildQueryString(List<KeyValuePair<string, string>> queryParams)
 		{
-			if (queryParams?.Count == 0)
-				return string.Empty;
+			if (queryParams == null)
+			{
+				throw new ArgumentNullException(nameof(queryParams));
+			}
 
-			return "?" + string.Join(
-				"&",
-				queryParams
-					.Select(kvp => kvp.Key + "=" + kvp.Value)
-					.ToArray());
+			if (queryParams.Count == 0)
+			{
+				return string.Empty;
+			}
+
+			return "?" + string.Join("&", queryParams
+				.Select(kvp => kvp.Key + "=" + kvp.Value)
+				.ToArray());
 		}
 
-		private Exception GetException(HttpResponseMessage result)
+		private Exception CreateException(HttpResponseMessage httpResponseMessage)
 		{
 			return new Exception(
-				$"Error: {result.StatusCode}, " +
-				$"Content: {result.Content.ReadAsStringAsync().Result}");
+				$"Status code: {httpResponseMessage.StatusCode}.\n" +
+				$"Content:\n{httpResponseMessage.Content.ReadAsStringAsync().GetAwaiter().GetResult()}");
 		}
 	}
 }

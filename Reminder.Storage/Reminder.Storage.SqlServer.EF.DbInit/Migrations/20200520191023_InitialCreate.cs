@@ -15,7 +15,7 @@ namespace Reminder.Storage.SqlServer.EF.DbInit.Migrations
                     ContactId = table.Column<string>(unicode: false, maxLength: 50, nullable: false),
                     TargetDate = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false),
                     Message = table.Column<string>(maxLength: 200, nullable: false),
-                    StatusId = table.Column<int>(unicode: false, maxLength: 30, nullable: false),
+                    StatusId = table.Column<int>(nullable: false),
                     CreatedDate = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false, defaultValueSql: "sysdatetimeoffset()"),
                     UpdatedDate = table.Column<DateTimeOffset>(type: "datetimeoffset(7)", nullable: false, defaultValueSql: "sysdatetimeoffset()")
                 },

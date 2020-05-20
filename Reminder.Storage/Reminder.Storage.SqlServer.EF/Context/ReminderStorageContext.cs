@@ -4,7 +4,7 @@ using Reminder.Storage.Core;
 
 namespace Reminder.Storage.SqlServer.EF.Context
 {
-	public class ReminderStorageContext : DbContext
+	public class ReminderStorageContext: DbContext
 	{
 		public DbSet<ReminderItemDto> ReminderItems { get; set; }
 
@@ -37,23 +37,24 @@ namespace Reminder.Storage.SqlServer.EF.Context
 				entity.Property(e => e.Message)
 					.IsRequired()
 					.HasMaxLength(200)
-					.IsUnicode(true);
+					.IsUnicode();
 
 				entity.Property(e => e.Status)
-					.HasColumnName("StatusId")
 					.IsRequired()
+					.HasColumnName("StatusId")
 					.HasConversion(
-						//new EnumToStringConverter<ReminderItemStatus>());
 						new EnumToNumberConverter<ReminderItemStatus, int>());
 
 				entity.Property(e => e.CreatedDate)
+					.IsRequired()
 					.HasColumnType("datetimeoffset(7)")
-					.HasDefaultValueSql("sysdatetimeoffset()")
+					.HasDefaultValueSql("sysdatetimeoffset(7)")
 					.ValueGeneratedOnAdd();
 
 				entity.Property(e => e.UpdatedDate)
+					.IsRequired()
 					.HasColumnType("datetimeoffset(7)")
-					.HasDefaultValueSql("sysdatetimeoffset()")
+					.HasDefaultValueSql("sysdatetimeoffset(7)")
 					.ValueGeneratedOnAddOrUpdate();
 			});
 		}
